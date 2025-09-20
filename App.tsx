@@ -7,6 +7,7 @@ import ContentLibrary from './components/ContentLibrary';
 import SpotDetailView from './components/SpotDetailView';
 import Chatbot from './components/Chatbot';
 import WeatherChatModal from './components/WeatherChatModal';
+import TripPlannerModal from './components/TripPlannerModal';
 import Spinner from './components/common/Spinner';
 import Modal from './components/common/Modal';
 import Button from './components/common/Button';
@@ -650,6 +651,7 @@ const App: React.FC = () => {
   const [finalData, setFinalData] = useState<Place | null>(null);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isWeatherChatOpen, setIsWeatherChatOpen] = useState(false);
+  const [isTripPlannerOpen, setIsTripPlannerOpen] = useState(false);
   const [weatherSources, setWeatherSources] = useState<WeatherSource[]>(initialWeatherSources);
   
   const handleGenerateDraft = useCallback(async (formData: InitialFormData) => {
@@ -931,6 +933,7 @@ const App: React.FC = () => {
                   onEdit={handleEditSpot} 
                   onView={handleViewSpot}
                   onOpenWeatherChat={() => setIsWeatherChatOpen(true)}
+                  onOpenTripPlanner={() => setIsTripPlannerOpen(true)}
                 />;
       case 'view':
         if (spotToView) {
@@ -1062,6 +1065,12 @@ const App: React.FC = () => {
           weatherSources={weatherSources}
           onSaveSource={handleSaveWeatherSource}
           onDeleteSource={handleDeleteWeatherSource}
+        />
+
+        <TripPlannerModal
+          isOpen={isTripPlannerOpen}
+          onClose={() => setIsTripPlannerOpen(false)}
+          spots={spots}
         />
     </div>
   );

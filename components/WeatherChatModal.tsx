@@ -122,11 +122,11 @@ ${currentInput}
     `;
 
     try {
+        // Add a temporary AI message that will be filled by the stream
+        setMessages(prev => [...prev, { role: 'ai', content: '' }]);
         const stream = await chat.sendMessageStream({ message: context });
         
         let fullResponseText = '';
-        // Add a temporary AI message that will be filled by the stream
-        setMessages(prev => [...prev, { role: 'ai', content: '' }]);
 
         for await (const chunk of stream) {
             fullResponseText += chunk.text;
@@ -275,19 +275,30 @@ ${currentInput}
                                 {msg.content}
                             </div>
                         </div>
-                    ) : (
-                        <div className="flex items-end gap-2 justify-start">
-                            <div className="max-w-xs md:max-w-sm w-full">
-                                {msg.content && (
-                                    <div className="px-4 py-2 rounded-2xl break-words bg-white text-gray-800 border rounded-bl-none mb-2">
-                                        {msg.content}
-                                        {isLoading && index === messages.length - 1 && !msg.weatherCard && <span className="inline-block w-2 h-4 ml-1 bg-gray-600 animate-pulse"></span>}
-                                    </div>
-                                )}
-                                {msg.weatherCard && <WeatherCard initialData={msg.weatherCard} onComplete={() => handleWeatherCardComplete(msg.weatherCard!)} />}
+                    ) : (() => {
+                        const isLastAIMessage = index === messages.length - 1;
+                        const showTypingIndicator = isLoading && isLastAIMessage && !msg.content && !msg.weatherCard;
+                        return (
+                            <div className="flex items-end gap-2 justify-start">
+                                <div className="max-w-xs md:max-w-sm w-full">
+                                    {msg.content ? (
+                                        <div className="px-4 py-2 rounded-2xl break-words bg-white text-gray-800 border rounded-bl-none mb-2">
+                                            {msg.content}
+                                        </div>
+                                    ) : showTypingIndicator ? (
+                                        <div className="px-4 py-3 rounded-2xl bg-white text-gray-800 border rounded-bl-none mb-2">
+                                            <div className="flex items-center space-x-1.5">
+                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '-0.3s' }}></div>
+                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '-0.15s' }}></div>
+                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    {msg.weatherCard && <WeatherCard initialData={msg.weatherCard} onComplete={() => handleWeatherCardComplete(msg.weatherCard!)} />}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
               ))}
               <div ref={messagesEndRef} />

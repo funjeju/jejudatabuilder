@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Place } from '../types';
 import { CATEGORIES, REGIONS } from '../constants';
@@ -12,6 +13,7 @@ interface ContentLibraryProps {
   onEdit: (spot: Place) => void;
   onView: (spot: Place) => void;
   onOpenWeatherChat: () => void;
+  onOpenTripPlanner: () => void;
 }
 
 const STATUS_OPTIONS = ['draft', 'published', 'rejected', 'stub'];
@@ -43,7 +45,7 @@ const StatusBadge: React.FC<{ status: Place['status']; onClick?: () => void }> =
 };
 
 
-const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, onAddNew, onEdit, onView, onOpenWeatherChat }) => {
+const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, onAddNew, onEdit, onView, onOpenWeatherChat, onOpenTripPlanner }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -108,6 +110,12 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, onAddNew, onEdit
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-800">콘텐츠 라이브러리</h2>
         <div className="flex items-center gap-2 flex-wrap justify-end gap-y-2">
+            <Button
+                onClick={onOpenTripPlanner}
+                className="bg-teal-500 text-white hover:bg-teal-600 focus:ring-teal-400"
+            >
+                📅 여행일정AI
+            </Button>
             <Button
                 onClick={onOpenWeatherChat}
                 className="bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-400"

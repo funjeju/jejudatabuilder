@@ -182,36 +182,48 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, spots, onNavigateToS
       
       <main className="flex-1 p-4 overflow-y-auto bg-gray-100">
         <div className="space-y-4">
-          {messages.map((msg, index) => (
-            <div key={index}>
-              <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.content && (
-                  <div className={`px-4 py-2 rounded-2xl max-w-xs md:max-w-sm break-words ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white text-gray-800 border rounded-bl-none'}`}>
-                    {msg.content}
-                    {isLoading && msg.role === 'ai' && index === messages.length - 1 && !msg.recommendations && <span className="inline-block w-2 h-4 ml-1 bg-gray-600 animate-pulse"></span>}
+          {messages.map((msg, index) => {
+            const isLastAIMessage = msg.role === 'ai' && index === messages.length - 1;
+            const showTypingIndicator = isLoading && isLastAIMessage && !msg.content && !msg.recommendations;
+
+            return (
+              <div key={index}>
+                <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.content ? (
+                    <div className={`px-4 py-2 rounded-2xl max-w-xs md:max-w-sm break-words ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white text-gray-800 border rounded-bl-none'}`}>
+                      {msg.content}
+                    </div>
+                  ) : showTypingIndicator ? (
+                    <div className="px-4 py-3 rounded-2xl bg-white text-gray-800 border rounded-bl-none">
+                      <div className="flex items-center space-x-1.5">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '-0.3s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '-0.15s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                {msg.recommendations && (
+                  <div className="mt-2 space-y-2">
+                    {msg.recommendations.map(rec => (
+                      <div key={rec.place_id} className="p-3 bg-white border rounded-lg shadow-sm">
+                        <h4 className="font-bold text-gray-800">{rec.place_name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{rec.summary}</p>
+                        <Button
+                          onClick={() => onNavigateToSpot(rec.place_id)}
+                          variant="secondary"
+                          size="normal"
+                          className="mt-3 w-full"
+                        >
+                          자세히 보기
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-              {msg.recommendations && (
-                <div className="mt-2 space-y-2">
-                  {msg.recommendations.map(rec => (
-                    <div key={rec.place_id} className="p-3 bg-white border rounded-lg shadow-sm">
-                      <h4 className="font-bold text-gray-800">{rec.place_name}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{rec.summary}</p>
-                      <Button
-                        onClick={() => onNavigateToSpot(rec.place_id)}
-                        variant="secondary"
-                        size="normal"
-                        className="mt-3 w-full"
-                      >
-                        자세히 보기
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </main>
