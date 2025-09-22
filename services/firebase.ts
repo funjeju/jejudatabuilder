@@ -7,7 +7,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyD33sh80picSyFd1-r1bVyQH1UdFdAXyes",
   authDomain: "jejudb.firebaseapp.com",
   projectId: "jejudb",
-  storageBucket: "jejudb.appspot.com",
+  // 수정: storageBucket 주소를 스크린샷에 나온 실제 주소로 변경합니다.
+  storageBucket: "jejudb.firebaseapp.com",
   messagingSenderId: "39776551937",
   appId: "1:39776551937:web:f5c4a1b2c3d4e5f6a7b8c9"
 };
