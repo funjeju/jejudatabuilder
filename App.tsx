@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type { Place, InitialFormData, Suggestion, EditLog, WeatherSource } from './types';
 import InitialForm from './components/InitialForm';
 import ReviewDashboard from './components/ReviewDashboard';
@@ -13,6 +13,8 @@ import Modal from './components/common/Modal';
 import Button from './components/common/Button';
 import { generateDraft } from './services/geminiService';
 import { KLokalLogo, WITH_KIDS_OPTIONS, WITH_PETS_OPTIONS, PARKING_DIFFICULTY_OPTIONS, ADMISSION_FEE_OPTIONS } from './constants';
+import { collection, query, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore"; 
+import { db } from './services/firebase';
 
 type AppStep = 'library' | 'initial' | 'loading' | 'review' | 'view';
 
@@ -40,7 +42,9 @@ const ChatbotIcon: React.FC<{className?: string}> = ({ className }) => (
 );
 
 const App: React.FC = () => {
-  const [spots, setSpots] = useState<Place[]>(initialDummyData);
+  // 수정: 정의되지 않은 initialDummyData 대신 빈 배열로 초기 상태를 변경합니다.
+  // 이제 데이터는 Firebase에서 직접 불러오게 됩니다.
+  const [spots, setSpots] = useState<Place[]>([]);
   const [step, setStep] = useState<AppStep>('library');
   const [dataToEdit, setDataToEdit] = useState<Place | null>(null);
   const [spotToView, setSpotToView] = useState<Place | null>(null);
@@ -345,7 +349,7 @@ const App: React.FC = () => {
 
   const handleDeleteWeatherSource = (id: string) => {
       handleDeleteWeatherSourceFromFirebase(id);
-
+  };
   const renderContent = () => {
     switch (step) {
       case 'library':

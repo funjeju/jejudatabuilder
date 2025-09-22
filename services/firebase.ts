@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Firebase 프로젝트 설정 (Firebase 콘솔에서 가져오기)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD33sh80picSyFd1-r1bVyQH1UdFdAXyes",
+  authDomain: "jejudb.firebaseapp.com",
+  projectId: "jejudb",
+  storageBucket: "jejudb.appspot.com",
+  messagingSenderId: "39776551937",
+  appId: "1:39776551937:web:f5c4a1b2c3d4e5f6a7b8c9"
 };
 
 // Firebase 초기화
