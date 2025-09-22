@@ -229,7 +229,7 @@ const App: React.FC = () => {
       comments: []
     };
     // 로컬 상태 업데이트 로직 대신 Firebase 저장 함수 호출
-    setSpots(prev => [...prev, newStub]);
+    handleSaveToFirebase(newStub); 
     return newStub;
   };
 
