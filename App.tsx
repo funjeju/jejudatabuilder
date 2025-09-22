@@ -16,6 +16,7 @@ import { KLokalLogo, WITH_KIDS_OPTIONS, WITH_PETS_OPTIONS, PARKING_DIFFICULTY_OP
 import { collection, query, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore";
 import { db } from './services/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { sanitizePlaceForFirestore, parsePlaceFromFirestore } from './services/placeFirestore';
 
 type AppStep = 'library' | 'initial' | 'loading' | 'review' | 'view';
 
@@ -61,11 +62,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const q = query(collection(db, "spots"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const spotsArray: Place[] = [];
-      querySnapshot.forEach((doc) => {
-        spotsArray.push(doc.data() as Place);
-      });
+      const spotsArray: Place[] = querySnapshot.docs.map((docSnap) =>
+        parsePlaceFromFirestore(docSnap.data(), docSnap.id)
+      );
       setSpots(spotsArray);
+    }, (snapshotError) => {
+      console.error('Error loading spots from Firestore:', snapshotError);
     });
     return () => unsubscribe();
   }, []);
@@ -159,7 +161,9 @@ const App: React.FC = () => {
 
   // Firestore에 데이터 저장 함수 추가
   const handleSaveToFirebase = async (data: Place) => {
-      await setDoc(doc(db, "spots", data.place_id), data);
+      const docId = data.place_id;
+      const sanitized = sanitizePlaceForFirestore(data);
+      await setDoc(doc(db, "spots", docId), sanitized);
   };
   
   // 날씨 소스 데이터 Firestore에 저장 함수 추가
