@@ -15,6 +15,7 @@ import { generateDraft } from './services/geminiService';
 import { KLokalLogo, WITH_KIDS_OPTIONS, WITH_PETS_OPTIONS, PARKING_DIFFICULTY_OPTIONS, ADMISSION_FEE_OPTIONS } from './constants';
 import { collection, query, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore"; 
 import { db } from './services/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type AppStep = 'library' | 'initial' | 'loading' | 'review' | 'view';
 
@@ -172,15 +173,43 @@ const App: React.FC = () => {
       await deleteDoc(doc(db, "weatherSources", id));
   };
   
-  const handleConfirmSave = () => {
+  // 수정: 이미지 업로드를 처리하기 위해 함수를 async 비동기 방식으로 변경합니다.
+  const handleConfirmSave = async () => {
     if (finalData) {
-      const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
-      const dataToSave = { ...finalData, updated_at: now, status: finalData.status === 'stub' ? 'draft' : finalData.status };
+      try {
+        const storage = getStorage();
+        const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
+        const dataToSave = { ...finalData, updated_at: now, status: finalData.status === 'stub' ? 'draft' : finalData.status };
 
-      // 로컬 상태 업데이트 로직 대신 Firebase 저장 함수 호출
-      handleSaveToFirebase(dataToSave); 
-      console.log('Final data saved:', JSON.stringify(dataToSave, null, 2));
-      setIsDataSaved(true);
+        // 이미지 업로드 로직 추가
+        if (dataToSave.images && dataToSave.images.length > 0) {
+          const uploadPromises = dataToSave.images.map(async (imageInfo) => {
+            // 'file' 객체가 있는 경우에만 (즉, 새로 추가되거나 수정된 이미지일 때만) 업로드합니다.
+            if (imageInfo.file) {
+              // 파일 이름으로 Storage 내 저장 경로를 만듭니다. 예: images/스팟ID/파일명
+              const imageRef = ref(storage, `images/${dataToSave.place_id}/${imageInfo.file.name}`);
+              // 파일을 Storage에 업로드합니다.
+              await uploadBytes(imageRef, imageInfo.file);
+              // 업로드된 파일의 다운로드 URL을 받아옵니다.
+              const downloadURL = await getDownloadURL(imageRef);
+              // 기존 imageInfo 객체에서 file 객체는 제거하고, url을 최종 URL로 업데이트합니다.
+              return { url: downloadURL, caption: imageInfo.caption };
+            }
+            // 이미 URL만 있는 기존 이미지는 그대로 반환합니다.
+            return imageInfo;
+          });
+          // 모든 이미지의 업로드 및 URL 변환 작업이 끝날 때까지 기다립니다.
+          const uploadedImages = await Promise.all(uploadPromises);
+          dataToSave.images = uploadedImages.map(({ file, ...rest }) => rest); // 최종적으로 file 속성 제거
+        }
+
+        await handleSaveToFirebase(dataToSave);
+        console.log('Final data saved:', JSON.stringify(dataToSave, null, 2));
+        setIsDataSaved(true);
+      } catch (error) {
+        console.error("Error saving data or uploading files: ", error);
+        setError("데이터 저장 또는 파일 업로드 중 오류가 발생했습니다.");
+      }
     }
   };
 
