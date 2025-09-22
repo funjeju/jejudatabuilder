@@ -36,6 +36,46 @@ const setValueByPath = (obj: any, path: string, value: any) => {
     return obj;
 };
 
+const sanitizeForFirestore = (value: any): any => {
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => sanitizeForFirestore(item))
+            .filter((item) => item !== undefined);
+    }
+
+    if (value && typeof value === 'object') {
+        if (typeof File !== 'undefined' && value instanceof File) {
+            return undefined;
+        }
+
+        const sanitized: Record<string, any> = {};
+        Object.entries(value).forEach(([key, val]) => {
+            const sanitizedValue = sanitizeForFirestore(val);
+            if (sanitizedValue !== undefined) {
+                sanitized[key] = sanitizedValue;
+            }
+        });
+        return sanitized;
+    }
+
+    if (value === undefined) {
+        return undefined;
+    }
+
+    return value;
+};
+
+const sortSpotsByUpdatedAt = (spotList: Place[]) => {
+    return [...spotList].sort((a, b) => {
+        const aTime = a.updated_at?.seconds ?? 0;
+        const bTime = b.updated_at?.seconds ?? 0;
+        if (aTime === bTime) {
+            return (a.place_name || '').localeCompare(b.place_name || '');
+        }
+        return bTime - aTime;
+    });
+};
+
 const ChatbotIcon: React.FC<{className?: string}> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.4 12.4h-2v-2h2v2zm3.2 0h-2v-2h2v2zm3.2 0h-2v-2h2v2z" />
@@ -63,9 +103,10 @@ const App: React.FC = () => {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const spotsArray: Place[] = [];
       querySnapshot.forEach((doc) => {
-        spotsArray.push(doc.data() as Place);
+        const data = doc.data() as Place;
+        spotsArray.push({ ...data, place_id: data.place_id || doc.id });
       });
-      setSpots(spotsArray);
+      setSpots(sortSpotsByUpdatedAt(spotsArray));
     });
     return () => unsubscribe();
   }, []);
@@ -159,7 +200,13 @@ const App: React.FC = () => {
 
   // Firestore에 데이터 저장 함수 추가
   const handleSaveToFirebase = async (data: Place) => {
-      await setDoc(doc(db, "spots", data.place_id), data);
+      const sanitizedData = sanitizeForFirestore(data) as Place;
+      await setDoc(doc(db, "spots", sanitizedData.place_id), sanitizedData);
+      setSpots(prevSpots => {
+        const filtered = prevSpots.filter(spot => spot.place_id !== sanitizedData.place_id);
+        return sortSpotsByUpdatedAt([...filtered, sanitizedData]);
+      });
+      return sanitizedData;
   };
   
   // 날씨 소스 데이터 Firestore에 저장 함수 추가
@@ -203,8 +250,9 @@ const App: React.FC = () => {
           dataToSave.images = uploadedImages.map(({ file, ...rest }) => rest); // 최종적으로 file 속성 제거
         }
 
-        await handleSaveToFirebase(dataToSave);
-        console.log('Final data saved:', JSON.stringify(dataToSave, null, 2));
+        const savedData = await handleSaveToFirebase(dataToSave);
+        console.log('Final data saved:', JSON.stringify(savedData, null, 2));
+        setFinalData(savedData);
         setIsDataSaved(true);
       } catch (error) {
         console.error("Error saving data or uploading files: ", error);
@@ -229,7 +277,9 @@ const App: React.FC = () => {
       comments: []
     };
     // 로컬 상태 업데이트 로직 대신 Firebase 저장 함수 호출
-    handleSaveToFirebase(newStub); 
+    handleSaveToFirebase(newStub).catch((error) => {
+      console.error('Failed to save stub spot:', error);
+    });
     return newStub;
   };
 
