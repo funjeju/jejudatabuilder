@@ -13,7 +13,7 @@ import Modal from './components/common/Modal';
 import Button from './components/common/Button';
 import { generateDraft } from './services/geminiService';
 import { KLokalLogo, WITH_KIDS_OPTIONS, WITH_PETS_OPTIONS, PARKING_DIFFICULTY_OPTIONS, ADMISSION_FEE_OPTIONS } from './constants';
-import { collection, query, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore"; 
+import { collection, query, onSnapshot, setDoc, doc, deleteDoc } from "firebase/firestore";
 import { db } from './services/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -234,6 +234,7 @@ const App: React.FC = () => {
   };
 
     const handleAddSuggestion = (placeId: string, fieldPath: string, content: string) => {
+        let spotForFirebase: Place | null = null;
         setSpots(prevSpots => {
             return prevSpots.map(spot => {
                 if (spot.place_id === placeId) {
@@ -252,20 +253,29 @@ const App: React.FC = () => {
                     }
                     updatedSuggestions[fieldPath].push(newSuggestion);
 
-                    return { ...spot, suggestions: updatedSuggestions };
+                    const updatedSpot = { ...spot, suggestions: updatedSuggestions };
+                    spotForFirebase = updatedSpot;
+                    return updatedSpot;
                 }
                 return spot;
             });
         });
+
+        if (spotForFirebase) {
+            handleSaveToFirebase(spotForFirebase).catch(error => {
+                console.error('Error saving suggestion to Firestore:', error);
+            });
+        }
     };
 
     const handleResolveSuggestion = (placeId: string, fieldPath: string, suggestionId: string, resolution: 'accepted' | 'rejected') => {
+        let spotForFirebase: Place | null = null;
         setSpots(prevSpots => {
             return prevSpots.map(spot => {
                 if (spot.place_id === placeId) {
                     const suggestionsForField = spot.suggestions?.[fieldPath] || [];
                     let suggestionToResolve: Suggestion | undefined;
-                    
+
                     const updatedSuggestionsForField = suggestionsForField.map(s => {
                         if (s.id === suggestionId) {
                             suggestionToResolve = s;
@@ -273,15 +283,15 @@ const App: React.FC = () => {
                         }
                         return s;
                     });
-                    
+
                     if (!suggestionToResolve) return spot;
 
                     const updatedSpot = { ...spot };
                     updatedSpot.suggestions = { ...(spot.suggestions), [fieldPath]: updatedSuggestionsForField };
-                    
+
                     if (resolution === 'accepted') {
                         const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
-                        
+
                         // Get previous value (for history log)
                         const previousValue = JSON.parse(JSON.stringify(spot)); // deep copy to get value
                         const pathKeys = fieldPath.replace(/\[(\w+)\]/g, '.$1').split('.');
@@ -296,7 +306,7 @@ const App: React.FC = () => {
                             if (typeof newValue === 'string') {
                                 newValue = newValue.split(',').map(tag => tag.trim()).filter(Boolean);
                             } else if (!Array.isArray(newValue)) {
-                                newValue = []; 
+                                newValue = [];
                             }
                         } else if (fieldPath === 'expert_tip_final') {
                             const existingTip = spot.expert_tip_final || '';
@@ -319,16 +329,23 @@ const App: React.FC = () => {
                         updatedSpot.edit_history = [...(spot.edit_history || []), newLogEntry];
                         updatedSpot.updated_at = now;
                     }
-                    
+
                     if (spotToView?.place_id === placeId) {
                         setSpotToView(updatedSpot);
                     }
-                    
+
+                    spotForFirebase = updatedSpot;
                     return updatedSpot;
                 }
                 return spot;
             });
         });
+
+        if (spotForFirebase) {
+            handleSaveToFirebase(spotForFirebase).catch(error => {
+                console.error('Error updating suggestion in Firestore:', error);
+            });
+        }
     };
   
   const handleExitToLibrary = () => {
