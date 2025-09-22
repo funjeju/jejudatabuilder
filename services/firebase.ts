@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "jejudb.firebaseapp.com",
   projectId: "jejudb",
   // 수정: storageBucket 주소를 스크린샷에 나온 실제 주소로 변경합니다.
-  storageBucket: "jejudb.appspot.com",
+  storageBucket: "jejudb.firebasestorage.app",
   messagingSenderId: "39776551937",
   appId: "1:39776551937:web:f5c4a1b2c3d4e5f6a7b8c9"
 };
